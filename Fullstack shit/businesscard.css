@@ -1,0 +1,29 @@
+.myimage {
+    width: 250px;
+}
+
+.card {
+    margin: 0 auto;
+    max-width: 400px;
+    padding: 20px;
+    display: flex;
+    justify-content: space-around;
+    background: aquamarine;
+    color: rgb(55, 55, 55);
+    border-bottom: 6px solid pink;
+
+
+}
+
+body {
+    margin: 20px;
+}
+
+.blueborder {
+    border: 1px dotted blue;
+}
+
+.details {
+    text-align: center;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
