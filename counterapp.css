@@ -1,0 +1,26 @@
+body{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+button{
+    padding-top:10px;
+    padding-bottom  :10px;
+    color: white;
+    font-weight: bold;
+    width: 200px;
+    margin-bottom: 5px;
+    margin-top: 5px;
+}
+
+#inc-btn{
+    background: darkred;
+}
+#dec-btn{
+    background: darkred;
+}
+
+#save-btn{
+    background: greenyellow;
+}
