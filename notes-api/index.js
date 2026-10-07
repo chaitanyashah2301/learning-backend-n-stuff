@@ -23,18 +23,20 @@ app.use((req,res,next)=>{
 
 //read all
 app.get("/notes", async(req ,res) => {
-    const search = req.query;
-    const notes = await prisma.note.findmany({
+    const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
+    const notes = await prisma.note.findMany({
         where: search ? {title:{contains: search,mode:"insensitive"}}:{},orderBy:{id:"asc"},
     });
     res.json(notes);
 
 });
 
-//fetch
+//fetch/read one 
 app.get("/notes/:id",async (req,res)=>{
     const id = Number(req.params.id);
-    const note = notes.find(n=> n.id===id);
+    if (Number.isNaN(id)) return res.status(400).json({error:"Invalid id"});
+
+    const note = await prisma.note.findUnique({where:{id}});
     if (!note) return res.status(404).json({error:"Note not found"});
     res.json(note);
 });
@@ -48,22 +50,30 @@ app.post("/notes",async (req,res)=>{
         return res.status(400).json({error:"Title must be atleast 3 characters long"})
     }
 
-    const note = { id: nextId++,title,content:content ?? ""};
-    notes.push(note);
+    const note = await prisma.note.create({
+        data:{title,content:content ?? ""},
+    });
     res.status(201).json(note);
 });
 
 //update
 
 app.put("/notes/:id",async (req,res)=>{
-    const id= Number(req.params.id);
-    const note = notes.find(n=>n.id===id);
-    if(!note) return res.status(404).json({error:"Note not found"});
+    const id = Number(req.params.id);
+    const {title,content}= req.body;
 
-    const {title,content} = req.body;
-    if (title !== undefined) note.title = title;
-    if (content !== undefined) note.content = content;
-    res.json(note);
+    try {
+        const note = await prisma.note.update({
+            where:{id},
+            data: {title,content},
+        });
+        res.json(note);
+    } catch (err) {
+        if (err.code ==="P2025") {
+            return res.status(404).json({error:"Note not found"});
+        }
+        throw err;
+    }
 });
 
 
@@ -71,11 +81,12 @@ app.put("/notes/:id",async (req,res)=>{
 
 app.delete("/notes/:id",async (req,res)=>{
     const id =Number(req.params.id);
-    const exists = notes.some(n=>n.id===id);
-    if(!exists) return res.status(404).json({error:"Note not found"});
-
-    notes = notes.filter(n=>n.id!==id);
-    res.status(204).send();
+    try {
+        await prisma.note.delete({where:{id}});
+    } catch (err) {
+         if (err.code === "P2025") return res.status(404).json({ error: "Note not found" });
+    throw err;
+    }
 });
 
 
@@ -85,15 +96,15 @@ app.use("/notes",async (req,res)=>{
     res.status(404).json({error:"Route not found"});
 });
 
-//search
+//search(scraped)
 
-app.get("/notes",async (req,res)=>{
-    const {search} = req.query;
-    if(!search) return res.json(notes);
+// app.get("/notes",async (req,res)=>{
+//     const {search} = req.query;
+//     if(!search) return res.json(notes);
 
-    const results= notes.filter(n=>n.title.toLowerCase().includes(search.toLowerCase()));
-    res.join(results);
-});
+//     const results= notes.filter(n=>n.title.toLowerCase().includes(search.toLowerCase()));
+//     res.join(results);
+// });
 
 
 app.listen(5000, () => console.log("Server running on http://localhost:5000"))
