@@ -1,5 +1,7 @@
 import express from "express";
+import { PrismaClient } from "@prisma/client";
 
+const prisma = new PrismaClient();
 const app = express();
 
 app.use(express.json());
@@ -10,19 +12,27 @@ app.use((req,res,next)=>{
 });
 
 
-let notes = [
-    {id: 1,title: "First note",content:"Hello world"},
-];
+// let notes = [
+//     {id: 1,title: "First note",content:"Hello world"},
+// ];
 
-let nextId = 2;
+// let nextId = 2; removed since now prisma will handle database rather than using this fake-local database
+
+
+
 
 //read all
-app.get("/notes", (req ,res) => {
+app.get("/notes", async(req ,res) => {
+    const search = req.query;
+    const notes = await prisma.note.findmany({
+        where: search ? {title:{contains: search,mode:"insensitive"}}:{},orderBy:{id:"asc"},
+    });
     res.json(notes);
+
 });
 
 //fetch
-app.get("/notes/:id",(req,res)=>{
+app.get("/notes/:id",async (req,res)=>{
     const id = Number(req.params.id);
     const note = notes.find(n=> n.id===id);
     if (!note) return res.status(404).json({error:"Note not found"});
@@ -30,9 +40,13 @@ app.get("/notes/:id",(req,res)=>{
 });
 
 //create
-app.post("/notes",(req,res)=>{
+app.post("/notes",async (req,res)=>{
     const { title,content}=req.body;
     if(!title) return res.status(400).json({error:"Title is required"});
+
+    if(title.length <3){
+        return res.status(400).json({error:"Title must be atleast 3 characters long"})
+    }
 
     const note = { id: nextId++,title,content:content ?? ""};
     notes.push(note);
@@ -41,7 +55,7 @@ app.post("/notes",(req,res)=>{
 
 //update
 
-app.put("/notes/:id",(req,res)=>{
+app.put("/notes/:id",async (req,res)=>{
     const id= Number(req.params.id);
     const note = notes.find(n=>n.id===id);
     if(!note) return res.status(404).json({error:"Note not found"});
@@ -55,7 +69,7 @@ app.put("/notes/:id",(req,res)=>{
 
 //delete
 
-app.delete("/notes/:id",(req,res)=>{
+app.delete("/notes/:id",async (req,res)=>{
     const id =Number(req.params.id);
     const exists = notes.some(n=>n.id===id);
     if(!exists) return res.status(404).json({error:"Note not found"});
@@ -67,13 +81,13 @@ app.delete("/notes/:id",(req,res)=>{
 
 //fallback condition
 
-app.use("/notes",(req,res)=>{
+app.use("/notes",async (req,res)=>{
     res.status(404).json({error:"Route not found"});
 });
 
 //search
 
-app.get("/notes",(req,res)=>{
+app.get("/notes",async (req,res)=>{
     const {search} = req.query;
     if(!search) return res.json(notes);
 
